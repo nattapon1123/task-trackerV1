@@ -1,0 +1,4 @@
+// ตั้งค่าการทำงานของส่วนขยายใน VS Code สำหรับ workspace นี้
+{
+    "robotcode.disableExtension": true
+}
