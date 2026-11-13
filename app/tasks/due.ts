@@ -2,7 +2,7 @@
 export const DAY = 24 * 60 * 60 * 1000;
 
 // เวลาไทยเร็วกว่า UTC 7 ชั่วโมง
-const BANGKOK_OFFSET = 7 * 60 * 60 * 1000;
+export const BANGKOK_OFFSET = 7 * 60 * 60 * 1000;
 
 // เหลือเวลาไม่เกินกี่วัน ถึงจะนับว่า "ใกล้ครบกำหนด" (เปลี่ยนตัวเลขนี้ได้)
 export const NEAR_DAYS = 3;
