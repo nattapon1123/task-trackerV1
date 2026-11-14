@@ -40,3 +40,11 @@ export function getDueReminders(
     return true;
   });
 }
+
+export async function sendReminderAndLog(
+  send: () => Promise<unknown>,
+  createLog: () => Promise<unknown>,
+): Promise<void> {
+  await send();
+  await createLog();
+}

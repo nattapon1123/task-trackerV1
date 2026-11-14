@@ -47,3 +47,4 @@ dev.db
 dev.db-journal
 dev.backup.db
 /app/generated
+!.env.example

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { isAuthorizedCronRequest } from "@/app/lib/cron-auth";
 import { sendMail } from "@/app/lib/mailer";
 import { buildReminderEmail } from "@/app/lib/reminder-email";
 import prisma from "@/app/lib/prisma";
-import { getDueReminders } from "@/app/lib/reminders";
+import { getDueReminders, sendReminderAndLog } from "@/app/lib/reminders";
 import { getDueState } from "@/app/tasks/due";
 
 export const dynamic = "force-dynamic";
@@ -12,13 +13,15 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
 
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (
+    !secret ||
+    !isAuthorizedCronRequest(request.headers.get("authorization"), secret)
+  ) {
     return NextResponse.json({ message: "unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
 
-  // งานที่ยังไม่เสร็จ และเจ้าของเปิดการแจ้งเตือนอยู่
   const tasks = await prisma.task.findMany({
     where: {
       status: { not: "DONE" },
@@ -32,10 +35,9 @@ export async function GET(request: Request) {
   });
 
   let sent = 0;
-  const errors: string[] = [];
+  const failed: { taskId: number; daysBefore: number }[] = [];
 
   for (const task of tasks) {
-    // งานที่เลยกำหนดแล้วไม่แจ้งเตือน
     if (getDueState(task.dueDate, task.status, now.getTime()) === "overdue") {
       continue;
     }
@@ -53,19 +55,24 @@ export async function GET(request: Request) {
           daysBefore,
         });
 
-        await sendMail({ to: task.user.email, ...email });
-
-        // บันทึกหลังส่งสำเร็จเท่านั้น ถ้าส่งไม่ได้จะลองใหม่รอบถัดไป
-        await prisma.reminderLog.create({
-          data: { taskId: task.id, daysBefore },
-        });
+        await sendReminderAndLog(
+          () => sendMail({ to: task.user.email, ...email }),
+          () =>
+            prisma.reminderLog.create({
+              data: { taskId: task.id, daysBefore },
+            }),
+        );
 
         sent++;
       } catch (error) {
-        errors.push(`งาน ${task.id} รอบ ${daysBefore}: ${String(error)}`);
+        console.error(
+          `[cron] ส่งงาน ${task.id} รอบ ${daysBefore} ไม่สำเร็จ`,
+          error,
+        );
+        failed.push({ taskId: task.id, daysBefore });
       }
     }
   }
 
-  return NextResponse.json({ sent, errors });
+  return NextResponse.json({ sent, failed });
 }
