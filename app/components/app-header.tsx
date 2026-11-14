@@ -5,12 +5,13 @@
 
    type AppHeaderProps = {
      userName: string;
-     current?: "tasks" | "subjects";
+     current?: "tasks" | "subjects" | "settings";
    };
 
    const links = [
      { key: "tasks", href: "/tasks", label: "งานของฉัน" },
      { key: "subjects", href: "/subjects", label: "วิชา" },
+      { key: "settings", href: "/settings", label: "ตั้งค่า" },
    ] as const;
 
    // แสดงเมนูหลัก ชื่อผู้ใช้ และฟอร์มออกจากระบบ
